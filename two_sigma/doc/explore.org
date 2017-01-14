@@ -1,0 +1,51 @@
+* Data explore
+
+
+** load data & basic info
+
+#+BEGIN_SRC python :session
+  import numpy as np
+  import pandas as pd
+  import sqlite3
+  from prettytable import PrettyTable
+
+  conn = sqlite3.connect("../data/train.sqlite")
+
+  def read_data_from_sqlite(table_name):
+      df = pd.read_sql("SELECT * from {table}".format(table=table_name), con=conn)
+      return df
+
+
+  def write_data_to_sqlite(df, table_name):
+      df.to_sql(name=table_name, con=conn)
+
+  df = read_data_from_sqlite("train")
+  # dim
+  print("training data has {} rows, {} columns ".format(*df.shape))
+
+  # column names
+  cols = PrettyTable()
+  cols.add_column(fieldname='ALL_COLUMN_NAMES',
+                  column=list(df.columns))
+
+  # column types
+  cols.add_column(fieldname='DATA_TYPE',
+                  column=[ df[col].dtypes for col in df ])
+
+
+  # column mean
+  cols.add_column(fieldname='DATA_MEAN',
+                  column=[ df[col].mean() for col in df ])
+
+
+  print(cols)
+
+
+
+
+
+
+#+END_SRC
+
+
+*** 
