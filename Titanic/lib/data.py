@@ -131,7 +131,7 @@ X_train = train_df.drop("Survived", axis=1)
 Y_train = train_df["Survived"]
 X_test = test_df.drop("PassengerId", axis=1).copy()
 X_train.shape, Y_train.shape, X_test.shape
-
+id_test = test_df["PassengerId"]
 
 
 
@@ -147,22 +147,21 @@ CATEGORICAL_COLUMNS = ['Title',
 
 
 def input_fn(df):
-  # Creates a dictionary mapping from each continuous feature column name (k) to
-  # the values of that column stored in a constant Tensor.
-  continuous_cols = {k: tf.constant(df[k].values)
-                     for k in CONTINUOUS_COLUMNS}
-  # Creates a dictionary mapping from each categorical feature column name (k)
-  # to the values of that column stored in a tf.SparseTensor.
-  categorical_cols = {k: tf.SparseTensor(
-      indices=[[i, 0] for i in range(df[k].size)],
-      values=df[k].values,
-      dense_shape=[df[k].size, 1])
-                      for k in CATEGORICAL_COLUMNS}
-  # Merges the two dictionaries into one.
-  # pdb.set_trace()
-  feature_cols = {**continuous_cols, **categorical_cols}
-  # Converts the label column into a constant Tensor.
-  label = tf.constant(df[LABEL_COLUMN].values)
-  # Returns the feature columns and the label.
-  return feature_cols
+    # Creates a dictionary mapping from each continuous feature column name (k) to
+    # the values of that column stored in a constant Tensor.
+    continuous_cols = {k: tf.constant(df[k].values)
+                       for k in CONTINUOUS_COLUMNS}
+    # Creates a dictionary mapping from each categorical feature column name (k)
+    # to the values of that column stored in a tf.SparseTensor.
+    categorical_cols = {k: tf.SparseTensor(
+        indices=[[i, 0] for i in range(df[k].size)],
+        values=df[k].values,
+        dense_shape=[df[k].size, 1])
+                        for k in CATEGORICAL_COLUMNS}
+    # Merges the two dictionaries into one.
+    feature_cols = {**continuous_cols, **categorical_cols}
+    # Converts the label column into a constant Tensor.
+    label = tf.constant(df[LABEL_COLUMN].values)
+    # Returns the feature columns and the label.
+    return feature_cols
 

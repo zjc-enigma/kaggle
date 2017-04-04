@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import pdb
 sys.path.append('../lib')
-from data import X_train, Y_train, X_test
+from data import X_train, Y_train, X_test, id_test
 
 # Parameters
 learning_rate = 0.01
@@ -74,4 +74,14 @@ pred_result = sess.run(pred,
                            X: X_test.as_matrix()
                        })
 #print(X_test.as_matrix()*sess.run(W) + sess.run(b))
+
+
+result_df =  pd.concat([id_test, pd.DataFrame(pred_result).ix[:,1]], axis=1)
+result_df.columns = ["PassengerId" , "Survived"]
+result_df.loc[(result_df['Survived'] >= 0.5), 'Survived'] = 1
+result_df.loc[(result_df['Survived'] < 0.5), 'Survived'] = 0
+result_df['Survived'] = result_df.Survived.apply(int)
+result_df.to_csv('../data/result_to_submission', index=False)
+
+
 
