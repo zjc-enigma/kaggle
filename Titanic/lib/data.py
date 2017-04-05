@@ -132,7 +132,7 @@ Y_train = train_df["Survived"]
 X_test = test_df.drop("PassengerId", axis=1).copy()
 X_train.shape, Y_train.shape, X_test.shape
 id_test = test_df["PassengerId"]
-
+Y_train = pd.DataFrame(Y_train)
 
 
 CONTINUOUS_COLUMNS = ['Age',
@@ -165,3 +165,8 @@ def input_fn(df):
     # Returns the feature columns and the label.
     return feature_cols
 
+ 
+# X_train, X_validate, Y_train, Y_validate = train_test_split(X_train,
+#                                                             Y_train,
+#                                                             test_size=0.3,
+#                                                             random_state=42)
