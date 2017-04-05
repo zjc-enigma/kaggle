@@ -164,9 +164,3 @@ def input_fn(df):
     label = tf.constant(df[LABEL_COLUMN].values)
     # Returns the feature columns and the label.
     return feature_cols
-
- 
-# X_train, X_validate, Y_train, Y_validate = train_test_split(X_train,
-#                                                             Y_train,
-#                                                             test_size=0.3,
-#                                                             random_state=42)
