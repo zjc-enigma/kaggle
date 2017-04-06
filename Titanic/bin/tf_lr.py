@@ -5,6 +5,7 @@ import sys
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
 
@@ -14,12 +15,12 @@ from data import X_train, Y_train, X_test, id_test
 
 # parameters
 learning_rate = 0.05
-training_epochs = 5000
+training_epochs = 2000
 batch_size = 200
 display_step = 1
 kfold_split_num = 8
 gpu_num = 2
-regularizer_beta = 0.01
+regularizer_beta = 0.001
 
 # make CV
 # kfold = KFold(n_splits=kfold_split_num)
@@ -31,9 +32,19 @@ regularizer_beta = 0.01
 # input
 # sample_size = len(cv_list[0][0])
 
+
+# 
+
+
+
 # one-hot encoding
 enc = OneHotEncoder()
 whole_df = pd.concat([X_train, X_test], axis=0)
+object_df = whole_df.select_dtypes(include=[object])
+rest_df = whole_df.select_dtypes(exclude=[object])
+lenc = LabelEncoder()
+labeled_df = object_df.apply(lenc.fit_transform)
+whole_df = pd.concat([rest_df, labeled_df], 1)
 encoded = enc.fit_transform(whole_df)
 train_rows = X_train.shape[0]
 X_train = encoded[:train_rows, :]
@@ -165,6 +176,7 @@ with tf.Session() as sess:
                            feed_dict={
                                X: X_test.toarray()
                            })
+
 
     #result_df =  pd.concat([id_test, pd.DataFrame(pred_result).ix[:,1]], axis=1)
     result_df =  pd.concat([id_test, pd.DataFrame(pred_result)], axis=1)
