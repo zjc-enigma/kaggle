@@ -46,12 +46,12 @@ X_train = model.transform(X_train)
 X_test =  model.transform(X_test)
 
 # parameter setting
-SVMC = 1
-GAMMA = 50.
+SVMC = 3
+GAMMA = 0.1
 EPOCH_NUM = 2000
-BATCH_SIZE = 200
+BATCH_SIZE = train_rows
 LEARNING_RATE = 0.05
-DISPLAY_STEP = 2
+DISPLAY_STEP = 5
 
 
 sample_size, feature_num = X_train.shape
@@ -88,9 +88,12 @@ def Kernel_Prediction():
 
 def Prediction():
     kernel_out = tf.matmul(tf.transpose(Y)*beta, Kernel_Prediction())
-    return tf.sign(kernel_out - tf.reduce_mean(kernel_out))
+    return tf.transpose(tf.sign(kernel_out - tf.reduce_mean(kernel_out)))
 
+def Accuracy():
+    return tf.reduce_mean(tf.cast(tf.equal(tf.squeeze(Prediction()), tf.squeeze(Y)), tf.float32))
 
+acc = Accuracy()
 cost = cost_func()
 pred = Prediction()
 optimizer = tf.train.AdamOptimizer(LEARNING_RATE).minimize(cost)
@@ -99,21 +102,29 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     for epoch in range(EPOCH_NUM):
-        avg_cost = 0.
+        #avg_cost = 0.
         total_batch = int(sample_size/BATCH_SIZE) # for the rest points
         #total_batch = int(sample_size/BATCH_SIZE)
 
         for i in range(total_batch):
             begin_idx = BATCH_SIZE*i
             #print('begin idx:', begin_idx, '| end idx:', begin_idx+BATCH_SIZE)
-            batch_x = X_train[begin_idx:begin_idx+BATCH_SIZE]
-            batch_y = Y_train[begin_idx:begin_idx+BATCH_SIZE]
-            _, c = sess.run([optimizer, cost],
-                            feed_dict={
-                                X: batch_x.toarray(),
-                                Y: batch_y.as_matrix()
-                            })
-            avg_cost += c / total_batch
+            batch_x = X_train[begin_idx:begin_idx+BATCH_SIZE].toarray()
+            batch_y = Y_train[begin_idx:begin_idx+BATCH_SIZE].as_matrix()
+            sess.run(optimizer,
+                     feed_dict={X: batch_x,
+                                Y: batch_y})
+
+            if (epoch+1) % DISPLAY_STEP == 0:
+                c, accurancy = sess.run([cost, acc],
+                                        feed_dict={
+                                            X: batch_x,
+                                            Y: batch_y,
+                                            test: batch_x})
+
+                print ('epoch=',epoch,'cost=',c, 'accuracy=', accurancy)
+
+        #    avg_cost += c / total_batch
 
         # cover the rest training point
         # begin_idx = BATCH_SIZE*total_batch
@@ -128,10 +139,22 @@ with tf.Session() as sess:
         # avg_cost += c / total_batch
 
 
-        if (epoch+1) % DISPLAY_STEP == 0:
-            print("Epoch:", '%04d' % (epoch+1),
-                  "avg Cost={}".format(avg_cost))
+        # if (epoch+1) % DISPLAY_STEP == 0:
+        #     print("Epoch:", '%04d' % (epoch+1),
+        #           "avg Cost={}".format(avg_cost))
 
 
 
-    output = sess.run(pred, feed_dict={X:X_train, Y:Y_train, test:test})
+    pred_result = sess.run(pred, feed_dict={
+        X:X_train[:BATCH_SIZE].toarray(),
+        Y:Y_train[:BATCH_SIZE].as_matrix(),
+        test:X_test.toarray()})
+
+    #result_df =  pd.concat([id_test, pd.DataFrame(pred_result).ix[:,1]], axis=1)
+    result_df =  pd.concat([id_test, pd.DataFrame(pred_result)], axis=1)
+    result_df.columns = ["PassengerId" , "Survived"]
+    result_df.loc[(result_df['Survived'] >= 0.5), 'Survived'] = 1
+    result_df.loc[(result_df['Survived'] < 0.5), 'Survived'] = 0
+    result_df['Survived'] = result_df.Survived.apply(int)
+    result_df.to_csv('../data/result_to_submission', index=False)
+
