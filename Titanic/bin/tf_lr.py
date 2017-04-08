@@ -7,7 +7,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.feature_selection import SelectFromModel
 
 import pdb
 sys.path.append('../lib')
@@ -33,8 +34,6 @@ regularizer_beta = 0.001
 # sample_size = len(cv_list[0][0])
 
 
-# 
-
 
 
 # one-hot encoding
@@ -45,12 +44,32 @@ rest_df = whole_df.select_dtypes(exclude=[object])
 lenc = LabelEncoder()
 labeled_df = object_df.apply(lenc.fit_transform)
 whole_df = pd.concat([rest_df, labeled_df], 1)
-encoded = enc.fit_transform(whole_df)
 train_rows = X_train.shape[0]
+
+encoded = enc.fit_transform(whole_df)
 X_train = encoded[:train_rows, :]
 X_test = encoded[train_rows:, :]
 #X_csr = enc.fit_transform(X_train)
 #Y_csr = enc.fit_transform(Y_train)
+
+
+
+# feature selection
+# train = whole_df[:train_rows]
+clf = ExtraTreesClassifier(n_estimators=200)
+clf = clf.fit(X_train, Y_train.Survived)
+# find out feature importance
+features = pd.DataFrame()
+# after one-hot encoded not care the columns name
+#features['feature'] = X_train.columns
+features['importance'] = clf.feature_importances_
+features.sort_values(by=['importance'],ascending=False)
+
+# only using top n features
+model = SelectFromModel(clf, prefit=True)
+X_train = model.transform(X_train)
+X_test =  model.transform(X_test)
+
 
 def convert_sparse_matrix_to_sparse_tensor(X):
     coo = X.tocoo()
@@ -74,6 +93,8 @@ label_num = Y_train.shape[1]
 X = tf.placeholder(tf.float32, [None, fea_num])
 Y = tf.placeholder(tf.float32, [None, label_num])
 W = tf.Variable(tf.zeros([fea_num, label_num]))
+#W = tf.trainable_variables(tf.zeros([fea_num, label_num]))
+
 b = tf.Variable(tf.zeros([label_num]))
 
 logit_func = tf.matmul(X, W) + b
@@ -88,15 +109,19 @@ auc = tf.contrib.metrics.streaming_auc(Y, Y_pred)
 #cost_func = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=Y))
 
 loss =  tf.nn.sigmoid_cross_entropy_with_logits(logits=logit_func, labels=Y)
-regularizer = tf.nn.l2_loss(W)
 
-cost_func = tf.reduce_mean(loss + regularizer_beta * regularizer)
+# regularizer
+l1_regularizer = regularizer_beta*tf.reduce_sum(tf.abs(W))
+l2_regularizer = tf.nn.l2_loss(W)
+#cost_func = tf.reduce_mean(loss + regularizer_beta * regularizer)
+cost_func = tf.reduce_mean(loss + l2_regularizer)
+
 #    + regular_lambda * tf.matmul(tf.transpose(W), W) # L2 regularization
 #cost_func = -tf.reduce_sum(Y*tf.log(tf.clip_by_value(pred, 1e-10, 1.0)))
 #cost_func = tf.reduce_mean(tf.reduce_sum((-Y*tf.log(pred))-((1-Y)*tf.log(1-pred)), 1))
 
-optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
-
+#optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
+optimizer = tf.train.MomentumOptimizer(learning_rate, 0.0).minimize(cost_func)
 init = tf.global_variables_initializer()
 # run
 with tf.Session() as sess:
@@ -146,6 +171,7 @@ with tf.Session() as sess:
 
     print("Optimization Finished!")
 
+    # using validation set to eval model
     accurancy_validate = sess.run(accurancy,
                                   feed_dict={
                                       X: X_validate.toarray(),

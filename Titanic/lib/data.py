@@ -130,8 +130,9 @@ for dataset in combine:
     dataset['Age_Pclass'] = dataset.Age.map(str) + "_" + dataset.Pclass.map(str)
     dataset['Sex_Pclass'] = dataset.Sex.map(str) + "_" + dataset.Pclass.map(str)
     dataset['Age_SibSp'] = dataset.Sex.map(str) + "_" + dataset.SibSp.map(str)
-    
-    
+
+
+
 
 
 
