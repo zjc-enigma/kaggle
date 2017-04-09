@@ -11,7 +11,6 @@ from sklearn.feature_selection import SelectFromModel
 # Going to use these 5 base models for the stacking
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.svm import SVC
-
 import pdb
 sys.path.append('../lib')
 from data import X_train, Y_train, X_test, id_test
@@ -196,10 +195,26 @@ feature_df['mean'] = feature_df[['rf_feature_importances',
                                  'gb_feature_importances']].mean(axis=1) # axis = 1 computes the mean row-wise
 feature_df.head(3)
 feature_df.sort_values(by='mean', ascending=False, inplace=True)
-selected_feature_idx = feature_df.head(50).features.ravel()
+selected_feature_idx = feature_df.head(20).features.ravel()
 
 X_train = X_train.iloc[: ,selected_feature_idx]
 X_test = X_test.iloc[: ,selected_feature_idx]
+
+x_train = X_train.values
+x_test = X_test.values
+
+# using new features re-train
+rf = SklearnHelper(clf=RandomForestClassifier, seed=SEED, params=rf_params)
+et = SklearnHelper(clf=ExtraTreesClassifier, seed=SEED, params=et_params)
+ada = SklearnHelper(clf=AdaBoostClassifier, seed=SEED, params=ada_params)
+gb = SklearnHelper(clf=GradientBoostingClassifier, seed=SEED, params=gb_params)
+svc = SklearnHelper(clf=SVC, seed=SEED, params=svc_params)
+
+et_oof_train, et_oof_test = get_oof(et, x_train, y_train, x_test) # Extra Trees
+rf_oof_train, rf_oof_test = get_oof(rf,x_train, y_train, x_test) # Random Forest
+ada_oof_train, ada_oof_test = get_oof(ada, x_train, y_train, x_test) # AdaBoost 
+gb_oof_train, gb_oof_test = get_oof(gb,x_train, y_train, x_test) # Gradient Boost
+svc_oof_train, svc_oof_test = get_oof(svc,x_train, y_train, x_test) # Support Vector Classifier
 
 
 print("Training is complete")
@@ -211,8 +226,37 @@ base_predictions_train = pd.DataFrame({'RandomForest': rf_oof_train.ravel(),
 base_predictions_train.head()
 
 
-base_train = np.concatenate(( et_oof_train, rf_oof_train, ada_oof_train, gb_oof_train, svc_oof_train), axis=1)
-base_test = np.concatenate(( et_oof_test, rf_oof_test, ada_oof_test, gb_oof_test, svc_oof_test), axis=1)
+base_train = np.concatenate(( et_oof_train,
+                              rf_oof_train,
+                              ada_oof_train,
+                              gb_oof_train,
+                              svc_oof_train), axis=1)
+
+base_test = np.concatenate(( et_oof_test,
+                             rf_oof_test,
+                             ada_oof_test,
+                             gb_oof_test,
+                             svc_oof_test), axis=1)
+
+
+svm_result = pd.read_csv("../data/svm_result_to_submission")
+lr_result = pd.read_csv("../data/result_to_submission")
+
+all = pd.merge(svm_result, lr_result, on='PassengerId')
+
+all = pd.concat([all,
+                 pd.DataFrame(et_oof_test),
+                 pd.DataFrame(rf_oof_test),
+                 pd.DataFrame(ada_oof_test),
+                 pd.DataFrame(gb_oof_test),
+                 pd.DataFrame(svc_oof_test)], axis=1)
+
+all['Survived'] = all.iloc[:,1:].mean(axis=1)
+all.loc[(all['Survived'] >= 0.5), 'Survived'] = 1
+all.loc[(all['Survived'] < 0.5), 'Survived'] = 0
+all = all[['PassengerId','Survived']]
+all['Survived'] = all.Survived.apply(int)
+all.to_csv('../data/ensemble_result_to_submission', index=False)
 
 
 # one-hot encoding

@@ -18,10 +18,10 @@ sys.path.append('../lib')
 learning_rate = 0.05
 training_epochs = 2000
 batch_size = 200
-display_step = 1
+display_step = 10
 kfold_split_num = 8
 gpu_num = 2
-regularizer_beta = 0.01
+regularizer_beta = 0.001
 
 # make CV
 # kfold = KFold(n_splits=kfold_split_num)
@@ -43,7 +43,6 @@ regularizer_beta = 0.01
 # labeled_df = object_df.apply(lenc.fit_transform)
 # whole_df = pd.concat([rest_df, labeled_df], 1)
 # train_rows = X_train.shape[0]
-
 # encoded = enc.fit_transform(whole_df)
 # X_train = encoded[:train_rows, :]
 # X_test = encoded[train_rows:, :]
@@ -60,15 +59,15 @@ regularizer_beta = 0.01
 # features['importance'] = clf.feature_importances_
 # features.sort_values(by=['importance'],ascending=False)
 
-# # only using top n features
+# # # only using top n features
 # model = SelectFromModel(clf, prefit=True)
 # X_train = model.transform(X_train)
 # X_test =  model.transform(X_test)
 
 
 # using ensemble features
-# X_train = pd.DataFrame(base_train)
-# X_test = pd.DataFrame(base_test)
+X_train = pd.DataFrame(base_train)
+X_test = pd.DataFrame(base_test)
 enc = OneHotEncoder()
 X_train = enc.fit_transform(X_train)
 X_test = enc.fit_transform(X_test)
@@ -114,7 +113,7 @@ loss =  tf.nn.sigmoid_cross_entropy_with_logits(logits=logit_func, labels=Y)
 
 # regularizer
 l1_regularizer = regularizer_beta*tf.reduce_sum(tf.abs(W))
-l2_regularizer = tf.nn.l2_loss(W)
+l2_regularizer = regularizer_beta*tf.nn.l2_loss(W)
 #cost_func = tf.reduce_mean(loss + regularizer_beta * regularizer)
 cost_func = tf.reduce_mean(loss + l2_regularizer)
 
@@ -130,22 +129,17 @@ with tf.Session() as sess:
 #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
     sess.run(init)
     sess.run(tf.local_variables_initializer())
-    #accurancy_list = []
-    #for cv_num, (train_idx, validation_idx) in enumerate(cv_list):
 
     for epoch in range(training_epochs):
         avg_cost = 0.
         total_batch = int(sample_size/batch_size) # for the rest points
-        #total_batch = int(sample_size/batch_size)
 
         for i in range(total_batch):
             begin_idx = batch_size*i
-            #print('begin idx:', begin_idx, '| end idx:', begin_idx+batch_size)
             batch_x = X_train[begin_idx:begin_idx+batch_size]
             batch_y = Y_train[begin_idx:begin_idx+batch_size]
             _, c = sess.run([optimizer, cost_func],
                             feed_dict={
-                                #X: batch_x.as_matrix(),
                                 X: batch_x.toarray(),
                                 Y: batch_y.as_matrix()
                             })
@@ -157,7 +151,6 @@ with tf.Session() as sess:
         batch_y = Y_train[begin_idx:]
         _, c = sess.run([optimizer, cost_func],
                         feed_dict={
-                            #X: batch_x.as_matrix(),
                             X: batch_x.toarray(),
                             Y: batch_y.as_matrix()
                         })
@@ -191,8 +184,6 @@ with tf.Session() as sess:
     print("auc on validation set:", auc_validate)
 
 
-
-
     cost_validate = sess.run(cost_func,
                              feed_dict={
                                 X: X_validate.toarray(),
@@ -207,7 +198,7 @@ with tf.Session() as sess:
 
 
     #result_df =  pd.concat([id_test, pd.DataFrame(pred_result).ix[:,1]], axis=1)
-    result_df =  pd.concat([id_test, pd.DataFrame(pred_result)], axis=1)
+    result_df = pd.concat([id_test, pd.DataFrame(pred_result)], axis=1)
     result_df.columns = ["PassengerId" , "Survived"]
     result_df.loc[(result_df['Survived'] >= 0.5), 'Survived'] = 1
     result_df.loc[(result_df['Survived'] < 0.5), 'Survived'] = 0
