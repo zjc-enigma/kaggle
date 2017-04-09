@@ -16,6 +16,8 @@ import pdb
 sys.path.append('../lib')
 from data import X_train, Y_train, X_test, id_test
 
+# using one-hot encoding
+enc = OneHotEncoder()
 whole_df = pd.concat([X_train, X_test], axis=0)
 object_df = whole_df.select_dtypes(include=[object])
 rest_df = whole_df.select_dtypes(exclude=[object])
@@ -23,8 +25,21 @@ lenc = LabelEncoder()
 labeled_df = object_df.apply(lenc.fit_transform)
 whole_df = pd.concat([rest_df, labeled_df], 1)
 train_rows = X_train.shape[0]
-X_train = whole_df[:train_rows]
-X_test = whole_df[train_rows:]
+
+encoded = enc.fit_transform(whole_df)
+X_train = pd.DataFrame(encoded[:train_rows, :].todense())
+X_test = pd.DataFrame(encoded[train_rows:, :].todense())
+
+
+# whole_df = pd.concat([X_train, X_test], axis=0)
+# object_df = whole_df.select_dtypes(include=[object])
+# rest_df = whole_df.select_dtypes(exclude=[object])
+# lenc = LabelEncoder()
+# labeled_df = object_df.apply(lenc.fit_transform)
+# whole_df = pd.concat([rest_df, labeled_df], 1)
+# train_rows = X_train.shape[0]
+# X_train = whole_df[:train_rows]
+# X_test = whole_df[train_rows:]
 
 
 # parameters
@@ -168,24 +183,31 @@ gb_feature = gb.feature_importances(x_train,y_train)
 
 cols = X_train.columns.values
 # Create a dataframe with features
-feature_dataframe = pd.DataFrame( {'features': cols,
-     'Random Forest feature importances': rf_feature,
-     'Extra Trees  feature importances': et_feature,
-      'AdaBoost feature importances': ada_feature,
-    'Gradient Boost feature importances': gb_feature
-    })
+feature_df = pd.DataFrame( {'features': cols,
+                            'rf_feature_importances': rf_feature,
+                            'ef_feature_importances': et_feature,
+                            'ada_feature_importances': ada_feature,
+                            'gb_feature_importances': gb_feature})
 
 
-feature_dataframe['mean'] = feature_dataframe.mean(axis= 1) # axis = 1 computes the mean row-wise
-feature_dataframe.head(3)
+feature_df['mean'] = feature_df[['rf_feature_importances',
+                                 'ef_feature_importances',
+                                 'ada_feature_importances',
+                                 'gb_feature_importances']].mean(axis=1) # axis = 1 computes the mean row-wise
+feature_df.head(3)
+feature_df.sort_values(by='mean', ascending=False, inplace=True)
+selected_feature_idx = feature_df.head(50).features.ravel()
+
+X_train = X_train.iloc[: ,selected_feature_idx]
+X_test = X_test.iloc[: ,selected_feature_idx]
+
 
 print("Training is complete")
 
-base_predictions_train = pd.DataFrame( {'RandomForest': rf_oof_train.ravel(),
-     'ExtraTrees': et_oof_train.ravel(),
-     'AdaBoost': ada_oof_train.ravel(),
-      'GradientBoost': gb_oof_train.ravel()
-    })
+base_predictions_train = pd.DataFrame({'RandomForest': rf_oof_train.ravel(),
+                                       'ExtraTrees': et_oof_train.ravel(),
+                                       'AdaBoost': ada_oof_train.ravel(),
+                                       'GradientBoost': gb_oof_train.ravel() })
 base_predictions_train.head()
 
 

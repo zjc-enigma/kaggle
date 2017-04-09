@@ -9,10 +9,10 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
-from ensemble import base_train, base_test
+from ensemble import base_train, base_test, X_train, X_test, Y_train, id_test
 import pdb
 sys.path.append('../lib')
-from data import X_train, Y_train, X_test, id_test
+#from data import X_train, Y_train, X_test, id_test
 
 # parameters
 learning_rate = 0.05
@@ -21,7 +21,7 @@ batch_size = 200
 display_step = 1
 kfold_split_num = 8
 gpu_num = 2
-regularizer_beta = 0.001
+regularizer_beta = 0.01
 
 # make CV
 # kfold = KFold(n_splits=kfold_split_num)
@@ -65,8 +65,10 @@ regularizer_beta = 0.001
 # X_train = model.transform(X_train)
 # X_test =  model.transform(X_test)
 
-X_train = pd.DataFrame(base_train)
-X_test = pd.DataFrame(base_test)
+
+# using ensemble features
+# X_train = pd.DataFrame(base_train)
+# X_test = pd.DataFrame(base_test)
 enc = OneHotEncoder()
 X_train = enc.fit_transform(X_train)
 X_test = enc.fit_transform(X_test)
@@ -120,8 +122,8 @@ cost_func = tf.reduce_mean(loss + l2_regularizer)
 #cost_func = -tf.reduce_sum(Y*tf.log(tf.clip_by_value(pred, 1e-10, 1.0)))
 #cost_func = tf.reduce_mean(tf.reduce_sum((-Y*tf.log(pred))-((1-Y)*tf.log(1-pred)), 1))
 
-#optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
-optimizer = tf.train.MomentumOptimizer(learning_rate, 0.0).minimize(cost_func)
+optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_func)
+#optimizer = tf.train.MomentumOptimizer(learning_rate, 0.0).minimize(cost_func)
 init = tf.global_variables_initializer()
 # run
 with tf.Session() as sess:

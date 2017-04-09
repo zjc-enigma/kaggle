@@ -11,45 +11,49 @@ from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 import pdb
 sys.path.append('../lib')
-from data import X_train, Y_train, X_test, id_test
-
+#from data import X_train, Y_train, X_test, id_test
+from ensemble import base_train, base_test, X_train, X_test, Y_train, id_test
 Y_train = Y_train.replace(0, -1) # for svm training
+enc = OneHotEncoder()
+X_train = enc.fit_transform(X_train)
+X_test = enc.fit_transform(X_test)
+
 
 # one-hot encoding
-enc = OneHotEncoder()
-whole_df = pd.concat([X_train, X_test], axis=0)
-object_df = whole_df.select_dtypes(include=[object])
-rest_df = whole_df.select_dtypes(exclude=[object])
-lenc = LabelEncoder()
-labeled_df = object_df.apply(lenc.fit_transform)
-whole_df = pd.concat([rest_df, labeled_df], 1)
-train_rows = X_train.shape[0]
+# enc = OneHotEncoder()
+# whole_df = pd.concat([X_train, X_test], axis=0)
+# object_df = whole_df.select_dtypes(include=[object])
+# rest_df = whole_df.select_dtypes(exclude=[object])
+# lenc = LabelEncoder()
+# labeled_df = object_df.apply(lenc.fit_transform)
+# whole_df = pd.concat([rest_df, labeled_df], 1)
+# train_rows = X_train.shape[0]
 
-encoded = enc.fit_transform(whole_df)
-X_train = encoded[:train_rows, :]
-X_test = encoded[train_rows:, :]
+# encoded = enc.fit_transform(whole_df)
+# X_train = encoded[:train_rows, :]
+# X_test = encoded[train_rows:, :]
 
-# feature selection
-# train = whole_df[:train_rows]
-clf = ExtraTreesClassifier(n_estimators=200)
-clf = clf.fit(X_train, Y_train.Survived)
-# find out feature importance
-features = pd.DataFrame()
-# after one-hot encoded not care the columns name
-#features['feature'] = X_train.columns
-features['importance'] = clf.feature_importances_
-features.sort_values(by=['importance'],ascending=False)
+# # feature selection
+# # train = whole_df[:train_rows]
+# clf = ExtraTreesClassifier(n_estimators=200)
+# clf = clf.fit(X_train, Y_train.Survived)
+# # find out feature importance
+# features = pd.DataFrame()
+# # after one-hot encoded not care the columns name
+# #features['feature'] = X_train.columns
+# features['importance'] = clf.feature_importances_
+# features.sort_values(by=['importance'],ascending=False)
 
 # only using top n features
-model = SelectFromModel(clf, prefit=True)
-X_train = model.transform(X_train)
-X_test =  model.transform(X_test)
+# model = SelectFromModel(clf, prefit=True)
+# X_train = model.transform(X_train)
+# X_test =  model.transform(X_test)
 
 # parameter setting
-SVMC = 3
+SVMC = 1
 GAMMA = 0.1
 EPOCH_NUM = 2000
-BATCH_SIZE = train_rows
+BATCH_SIZE = X_train.shape[0]
 LEARNING_RATE = 0.05
 DISPLAY_STEP = 5
 
