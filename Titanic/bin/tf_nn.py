@@ -26,6 +26,23 @@ encoded = enc.fit_transform(whole_df)
 X_train = encoded[:train_rows, :]
 X_test = encoded[train_rows:, :]
 
+
+
+clf = ExtraTreesClassifier(n_estimators=200)
+clf = clf.fit(X_train, Y_train.Survived)
+# find out feature importance
+features = pd.DataFrame()
+# after one-hot encoded not care the columns name
+#features['feature'] = X_train.columns
+features['importance'] = clf.feature_importances_
+features.sort_values(by=['importance'],ascending=False)
+
+# # only using top n features
+model = SelectFromModel(clf, prefit=True)
+X_train = model.transform(X_train)
+X_test =  model.transform(X_test)
+
+
 # enc = OneHotEncoder()
 # X_train = enc.fit_transform(X_train)
 # X_test = enc.fit_transform(X_test)
@@ -36,17 +53,17 @@ label_num = Y_train.shape[1]
 
 # parameters
 learning_rate = 0.05
-training_epochs = 200
-batch_size = 200
+training_epochs = 500
+batch_size = 20
 display_step = 10
 kfold_split_num = 8
 gpu_num = 2
-regularizer_beta = 0.001
+regularizer_beta = 0.01
 layer_num = 1
 
 # Network Parameters
-n_hidden_1 = 3 # 1st layer number of features
-n_hidden_2 = 2 # 2nd layer number of features
+n_hidden_1 = 10 # 1st layer number of features
+n_hidden_2 = 10 # 2nd layer number of features
 n_input = fea_num
 n_classes = label_num
 
@@ -74,28 +91,36 @@ biases = {
 # b = tf.Variable(tf.zeros([label_num]))
 
 
+
 # Create model
 def multilayer_perceptron(x, weights, biases):
-    # Hidden layer with RELU activation
+
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    layer_1 = tf.nn.relu(layer_1)
-    # Hidden layer with RELU activation
+    layer_1 = tf.nn.sigmoid(layer_1)
+
     layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    layer_2 = tf.nn.relu(layer_2)
-    # Output layer with linear activation
-    out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
+    layer_2 = tf.nn.sigmoid(layer_2)
+
+    # Output layer with sigmoid activation
+    out_layer = tf.nn.sigmoid(tf.matmul(layer_2, weights['out']) + biases['out'])
     return out_layer
 
 
 # Construct model
 pred = multilayer_perceptron(X, weights, biases)
+#l2_regularizer = regularizer_beta*tf.nn.l2_loss(W)
+
+
+all_w = tf.concat([tf.reshape(mat, [-1]) for mat in weights.values()], axis=0)
+regularizer = regularizer_beta*tf.reduce_mean(tf.square(all_w))
 
 # Define loss and optimizer
-cost =  tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pred, labels=Y))
+cost =  tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pred, labels=Y)) + regularizer
 #cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=Y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Initializing the variables
+
 init = tf.global_variables_initializer()
 
 # Launch the graph
@@ -140,4 +165,4 @@ with tf.Session() as sess:
     result_df.loc[(result_df['Survived'] >= 0.5), 'Survived'] = 1
     result_df.loc[(result_df['Survived'] < 0.5), 'Survived'] = 0
     result_df['Survived'] = result_df.Survived.apply(int)
-    result_df.to_csv('../data/result_to_submission', index=False)
+    result_df.to_csv('../data/nn_result_to_submission', index=False)
