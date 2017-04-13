@@ -53,8 +53,8 @@ label_num = Y_train.shape[1]
 
 # parameters
 learning_rate = 0.05
-training_epochs = 500
-batch_size = 20
+training_epochs = 550
+batch_size = 200
 display_step = 10
 kfold_split_num = 8
 gpu_num = 2
@@ -97,6 +97,8 @@ def multilayer_perceptron(x, weights, biases):
 
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
     layer_1 = tf.nn.sigmoid(layer_1)
+
+    #layer_1 = tf.nn.relu(layer_1)
 
     layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
     layer_2 = tf.nn.sigmoid(layer_2)
