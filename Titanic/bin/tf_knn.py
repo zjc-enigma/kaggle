@@ -16,7 +16,7 @@ from data import X_train, Y_train, X_test, id_test
 
 
 # parameter setting
-K = 10
+K = 2
 
 
 # one-hot encoding
@@ -61,8 +61,9 @@ X_train, X_validate, Y_train, Y_validate = train_test_split(X_train,
                                                             test_size=0.3,
                                                             random_state=42)
 
+validate_num = X_validate.shape[0]
 Y_train = Y_train.reset_index()
-
+Y_validate = Y_validate.reset_index()
 sample_size, fea_num = X_train.shape
 label_num = Y_train.shape[1]
 point_num = X_test.shape[0]
@@ -70,6 +71,7 @@ point_num = X_test.shape[0]
 X = tf.placeholder(tf.float32, [None, fea_num])
 new_point = tf.placeholder(tf.float32, [fea_num])
 Y = tf.placeholder(tf.float32, [None, label_num])
+#K = tf.placeholder(tf.int8, )
 
 # L1 distance
 distance = tf.reduce_sum(tf.abs(X - new_point), reduction_indices=1)
@@ -91,6 +93,25 @@ result_list = []
 with tf.Session() as sess:
         sess.run(init)
 
+        # for i in range(validate_num):
+        #     validate_res = sess.run(pred, feed_dict={
+        #         X: X_train,
+        #         new_point: X_validate[i]})
+
+        #     validate_indices = validate_res.indices
+        #     validate_result = Y_train.Survived[validate_indices].tolist()
+        #     validate_class = sess.run(tf.reduce_mean(validate_result))
+        #     if validate_class >= 0.5:
+        #         validate_class = 1
+        #     else:
+        #         validate_class = 0
+
+
+        #     if validate_class == Y_validate.Survived[i]:
+        #             accurancy += 1. / validate_num
+        # print("Accurancy:", accurancy)
+
+
         # calc every point class
         for i in range(point_num):
             # get nearest neighbor, using all training data
@@ -104,28 +125,12 @@ with tf.Session() as sess:
             result_list.append(sess.run(tf.reduce_mean(knn_result)))
 
 
-
-            print("validate point", i, "Prediction:", np.argmax(Y_train[knn_indices]), "True Class:", np.argmax(Y_validate[i]))
-
-            if np.argmax(Y_train[knn_indices]) == np.argmax(Y_validate[i]):
-                accuracy += 1. / point_num
-        print("Accuracy:", accuracy)
-
-
         result_df = pd.concat([id_test, pd.DataFrame(result_list)], axis=1)
         result_df.columns = ["PassengerId" , "Survived"]
         result_df.loc[(result_df['Survived'] >= 0.5), 'Survived'] = 1
         result_df.loc[(result_df['Survived'] < 0.5), 'Survived'] = 0
         result_df['Survived'] = result_df.Survived.apply(int)
         result_df.to_csv('../data/knn_result_to_submission', index=False)
-
-            #print("knn_index:", knn_index)
-            #print("nearest class is:", Y_train.iloc[knn_index, ].as_matrix())
-            #print("np.argmax(Y_train[knn_index]):", np.argmax(Y_train.iloc[knn_index, ]))
-
-        #     # 计算 accuracy
-        # print("Done!")
-        # 
 
 
 

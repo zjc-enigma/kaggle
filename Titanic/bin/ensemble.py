@@ -241,22 +241,31 @@ base_test = np.concatenate(( et_oof_test,
 
 svm_result = pd.read_csv("../data/svm_result_to_submission")
 lr_result = pd.read_csv("../data/result_to_submission")
+nn_result = pd.read_csv("../data/nn_result_to_submission")
+knn_result = pd.read_csv("../data/knn_result_to_submission")
+xgb_result = pd.read_csv("../data/xgb_result_to_submission")
 
-all = pd.merge(svm_result, lr_result, on='PassengerId')
+all_df = pd.merge(svm_result, lr_result, on='PassengerId')
+all_df = pd.merge(all_df, nn_result, on='PassengerId')
+all_df = pd.merge(all_df, knn_result, on='PassengerId')
+all_df = pd.merge(all_df, xgb_result, on='PassengerId')
 
-all = pd.concat([all,
-                 pd.DataFrame(et_oof_test),
-                 pd.DataFrame(rf_oof_test),
-                 pd.DataFrame(ada_oof_test),
-                 pd.DataFrame(gb_oof_test),
-                 pd.DataFrame(svc_oof_test)], axis=1)
+# all_df = pd.concat([all_df,
+#                  pd.DataFrame(et_oof_test),
+#                  pd.DataFrame(rf_oof_test),
+#                  pd.DataFrame(ada_oof_test),
+#                  pd.DataFrame(gb_oof_test),
+#                  pd.DataFrame(svc_oof_test)], axis=1)
 
-all['Survived'] = all.iloc[:,1:].mean(axis=1)
-all.loc[(all['Survived'] >= 0.5), 'Survived'] = 1
-all.loc[(all['Survived'] < 0.5), 'Survived'] = 0
-all = all[['PassengerId','Survived']]
-all['Survived'] = all.Survived.apply(int)
-all.to_csv('../data/ensemble_result_to_submission', index=False)
+
+
+all_df['Survived_mean'] = all_df.iloc[:,1:].mean(axis=1)
+all_df = all_df[['PassengerId', 'Survived_mean']]
+all_df.loc[(all_df['Survived_mean'] >= 0.5), 'Survived'] = 1
+all_df.loc[(all_df['Survived_mean'] < 0.5), 'Survived'] = 0
+all_df = all_df[['PassengerId','Survived']]
+all_df['Survived'] = all_df.Survived.apply(int)
+all_df.to_csv('../data/ensemble_result_to_submission', index=False)
 
 
 # one-hot encoding
