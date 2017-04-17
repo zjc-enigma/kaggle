@@ -245,9 +245,10 @@ nn_result = pd.read_csv("../data/nn_result_to_submission")
 knn_result = pd.read_csv("../data/knn_result_to_submission")
 xgb_result = pd.read_csv("../data/xgb_result_to_submission")
 
-all_df = pd.merge(svm_result, lr_result, on='PassengerId')
-all_df = pd.merge(all_df, nn_result, on='PassengerId')
-all_df = pd.merge(all_df, knn_result, on='PassengerId')
+#all_df = pd.merge(svm_result, lr_result, on='PassengerId')
+#all_df = pd.merge(all_df, nn_result, on='PassengerId')
+#all_df = pd.merge(all_df, knn_result, on='PassengerId')
+all_df = pd.merge(nn_result, lr_result, on='PassengerId')
 all_df = pd.merge(all_df, xgb_result, on='PassengerId')
 
 # all_df = pd.concat([all_df,

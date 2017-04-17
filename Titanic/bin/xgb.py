@@ -11,10 +11,60 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import roc_auc_score
+import matplotlib.pylab as plt
+from sklearn.model_selection import GridSearchCV
 #from ensemble import base_train, base_test, X_train, X_test, Y_train, id_test
 import pdb
 sys.path.append('../lib')
 from data import X_train, Y_train, X_test, id_test
+
+# hyper parameter settings
+learning_rate = 0.1
+gamma = 0.
+seed = 42
+nthread = 88
+max_depth = 5
+n_estimators = 1000
+subsample = 0.8
+colsample_bytree = 0.8
+
+# basic settings
+#target = 'Survived'
+#IDcols = ''
+
+
+def modelfit(alg, fea_train, label_train, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+
+    if useTrainCV:
+        xgb_param = alg.get_xgb_params()
+        # fea_train is sparse matrix
+        xgtrain = xgb.DMatrix(fea_train, label=label_train.values)
+        cvresult = xgb.cv(xgb_param,
+                          xgtrain,
+                          num_boost_round=alg.get_params()['n_estimators'],
+                          nfold=cv_folds,
+                          metrics='auc',
+                          early_stopping_rounds=early_stopping_rounds,
+                          verbose_eval=True)
+
+        alg.set_params(n_estimators=cvresult.shape[0])
+
+    #Fit the algorithm on the data
+    alg.fit(fea_train, label_train, eval_metric='auc')
+
+    #Predict training set:
+    dtrain_predictions = alg.predict(fea_train)
+    dtrain_predprob = alg.predict_proba(fea_train)[:,1]
+
+    #Print model report:
+    print("\nModel Report")
+    print("Accuracy : %.4g" % accuracy_score(label_train.values, dtrain_predictions))
+    print("AUC Score (Train): %f" % roc_auc_score(label_train, dtrain_predprob))
+
+    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
+    feat_imp.plot(kind='bar', title='Feature Importances')
+    plt.ylabel('Feature Importance Score')
 
 
 # one-hot encoding
@@ -32,7 +82,22 @@ X_train = encoded[:train_rows, :]
 X_test = encoded[train_rows:, :]
 
 
-model = xgb.XGBClassifier()
+model = xgb.XGBClassifier(
+    learning_rate=learning_rate,
+    nthread=nthread,
+    gamma=gamma,
+    seed=seed,
+    max_depth=max_depth,
+    n_estimators=n_estimators,
+    subsample=subsample,
+    colsample_bytree=colsample_bytree
+)
+
+
+
+modelfit(model, X_train, Y_train.Survived)
+
+
 model.fit(X_train, Y_train.Survived)
 
 
@@ -44,3 +109,33 @@ result_df = pd.concat([id_test, pd.DataFrame(result_list)], axis=1)
 result_df.columns = ["PassengerId" , "Survived"]
 #result_df['Survived'] = result_df.Survived.apply(int)
 result_df.to_csv('../data/xgb_result_to_submission', index=False)
+
+
+# tune max_depth & min_child_weight
+
+param_t1 = {
+    'max_depth': [3, 5, 7, 9],
+    'min_child_weight': [1, 3, 5]
+}
+
+#        seed=seed,
+gs1 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        max_depth=5,
+        min_child_weight=1,
+        gamma=0,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        nthread=22),
+    param_grid=param_t1,
+    scoring='roc_auc',
+    n_jobs=4,
+    iid=False,
+    cv=5)
+
+gs1.fit(X_train.todense(), Y_train.Survived)
+gs1.grid_scores_
+gs1.best_params_
+gs1.best_score_
