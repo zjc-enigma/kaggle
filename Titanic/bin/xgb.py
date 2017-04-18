@@ -62,9 +62,9 @@ def modelfit(alg, fea_train, label_train, useTrainCV=True, cv_folds=5, early_sto
     print("Accuracy : %.4g" % accuracy_score(label_train.values, dtrain_predictions))
     print("AUC Score (Train): %f" % roc_auc_score(label_train, dtrain_predprob))
 
-    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
-    feat_imp.plot(kind='bar', title='Feature Importances')
-    plt.ylabel('Feature Importance Score')
+    # feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
+    # feat_imp.plot(kind='bar', title='Feature Importances')
+    # plt.ylabel('Feature Importance Score')
 
 
 # one-hot encoding
