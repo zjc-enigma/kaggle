@@ -68,9 +68,9 @@ def modelfit(alg, fea_train, label_train, useTrainCV=True, cv_folds=5, early_sto
     print("Accuracy : %.4g" % accuracy_score(label_train.values, dtrain_predictions))
     print("AUC Score (Train): %f" % roc_auc_score(label_train, dtrain_predprob))
 
-    # feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
-    # feat_imp.plot(kind='bar', title='Feature Importances')
-    # plt.ylabel('Feature Importance Score')
+    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
+    feat_imp.plot(kind='bar', title='Feature Importances')
+    plt.ylabel('Feature Importance Score')
 
 
 # one-hot encoding
@@ -116,7 +116,8 @@ print(gs1.best_params_)
 print(gs1.best_score_)
 
 # tune parameters more accuracy
-# {'min_child_weight': 1, 'max_depth': 3}
+
+# {'max_depth': 3, 'min_child_weight': 1}
 param_t2 = {
     'max_depth': [2,3,4],
     'min_child_weight': [1, 2]
@@ -141,24 +142,184 @@ print(gs2.grid_scores_)
 print(gs2.best_params_)
 print(gs2.best_score_)
 
+# tuned result
+# {'max_depth': 3, 'min_child_weight': 1}
+
+
+# begin to tune gamma
+param_t3 = {
+    'gamma': [i/10.0 for i in range(0, 5)]
+}
+
+gs3 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        seed=seed,
+        max_depth=3,
+        min_child_weight=1,
+        nthread=88),
+    param_grid=param_t3,
+    scoring='roc_auc',
+    iid=False,
+    cv=5)
+
+gs3.fit(X_train.todense(), Y_train.Survived)
+print(gs3.grid_scores_)
+print(gs3.best_params_)
+print(gs3.best_score_)
+
+# tuned gamma
+# {'gamma': 0.1}
+# 0.873509384063
 
 
 
+# begin to tune subsample & colsample_bytree
+
+param_t4 = {
+    'subsample':[i/10.0 for i in range(6, 10)],
+    'colsample_bytree': [i/10.0 for i in range(6,10)]
+}
+
+gs4 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        seed=seed,
+        max_depth=3,
+        min_child_weight=1,
+        gamma=0.1,
+        nthread=88),
+    param_grid=param_t4,
+    scoring='roc_auc',
+    iid=False,
+    cv=5)
+
+gs4.fit(X_train.todense(), Y_train.Survived)
+print(gs4.grid_scores_)
+print(gs4.best_params_)
+print(gs4.best_score_)
+# tuned result
+# {'colsample_bytree': 0.7, 'subsample': 0.9}
+
+
+
+# for more accuracy
+param_t5 = {
+    'subsample':[i/100.0 for i in range(65, 80, 5)],
+    'colsample_bytree': [i/100.0 for i in range(85,100, 5)]
+}
+
+
+gs5 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        seed=seed,
+        max_depth=3,
+        min_child_weight=1,
+        gamma=0.1,
+        nthread=88),
+    param_grid=param_t5,
+    scoring='roc_auc',
+    iid=False,
+    cv=5)
+
+gs5.fit(X_train.todense(), Y_train.Survived)
+print(gs5.grid_scores_)
+print(gs5.best_params_)
+print(gs5.best_score_)
+# tune result , score 有所下降
+# {'colsample_bytree': 0.85, 'subsample': 0.65}
+
+param_t6 = {
+    'reg_alpha':[1e-5, 1e-2, 0.1, 1, 100]
+}
+
+
+gs6 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        seed=seed,
+        subsample=0.65,
+        colsample_bytree=0.85,
+        max_depth=3,
+        min_child_weight=1,
+        gamma=0.1,
+        nthread=88),
+    param_grid=param_t6,
+    scoring='roc_auc',
+    iid=False,
+    cv=5)
+
+gs6.fit(X_train.todense(), Y_train.Survived)
+print(gs6.grid_scores_)
+print(gs6.best_params_)
+print(gs6.best_score_)
+# tuned
+# {'reg_alpha': 1}
+
+
+param_t7 = {
+    'reg_alpha':[0.5, 1, 1.5, 2, 2.5]
+}
+
+
+gs7 = GridSearchCV(
+    estimator=xgb.XGBClassifier(
+        learning_rate=learning_rate,
+        n_estimators=150,
+        seed=seed,
+        subsample=0.75,
+        colsample_bytree=0.85,
+        max_depth=3,
+        min_child_weight=1,
+        gamma=0.1,
+        nthread=88),
+    param_grid=param_t7,
+    scoring='roc_auc',
+    iid=False,
+    cv=5)
+
+gs7.fit(X_train.todense(), Y_train.Survived)
+print(gs7.grid_scores_)
+print(gs7.best_params_)
+print(gs7.best_score_)
+# for more accuracy
+# {'reg_alpha': 2.5}
+
+
+
+# reduce learning rate
+# from 0.1 to 0.01
 model = xgb.XGBClassifier(
-    learning_rate=learning_rate,
-    nthread=nthread,
-    gamma=gamma,
+    learning_rate=0.01,
+    n_estimators=1000,
     seed=seed,
-    max_depth=max_depth,
-    min_child_weight
-    n_estimators=n_estimators,
-    subsample=subsample,
-    colsample_bytree=colsample_bytree
-)
+    subsample=0.75,
+    colsample_bytree=0.85,
+    max_depth=3,
+    min_child_weight=1,
+    gamma=0.1,
+    reg_alpha=2.5,
+    nthread=88)
+
+#     learning_rate=learning_rate,
+#     nthread=nthread,
+#     gamma=gamma,
+#     seed=seed,
+#     max_depth=max_depth,
+#     n_estimators=n_estimators,
+#     subsample=subsample,
+#     colsample_bytree=colsample_bytree
+# )
 
 
-
-modelfit(model, X_train, Y_train.Survived)
+#modelfit(model, X_train, Y_train.Survived)
 
 
 model.fit(X_train, Y_train.Survived)
