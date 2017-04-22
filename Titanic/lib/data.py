@@ -90,7 +90,8 @@ for dataset in combine:
     dataset.loc[(dataset['Age'] > 16) & (dataset['Age'] <= 32), 'Age'] = 1
     dataset.loc[(dataset['Age'] > 32) & (dataset['Age'] <= 48), 'Age'] = 2
     dataset.loc[(dataset['Age'] > 48) & (dataset['Age'] <= 64), 'Age'] = 3
-    dataset.loc[ dataset['Age'] > 64, 'Age']
+    # map age above 64
+    dataset.loc[ dataset['Age'] > 64, 'Age'] = 4
 
 train_df.head()
 
@@ -119,6 +120,16 @@ for dataset in combine:
     dataset.loc[(dataset['Fare'] > 14.454) & (dataset['Fare'] <= 31), 'Fare']   = 2
     dataset.loc[ dataset['Fare'] > 31, 'Fare'] = 3
     dataset['Fare'] = dataset['Fare'].astype(int)
+
+
+#
+for dataset in combine:
+    dataset['family_size'] = (dataset['Parch'] + dataset['SibSp'] + 1).astype(int)
+    dataset['is_single'] = dataset['family_size'].map(lambda s: 1 if s==1 else 0)
+    dataset['small_family'] = dataset['family_size'].map(lambda s: 1 if 2<=s<=4 else 0)
+    dataset['large_family'] = dataset['family_size'].map(lambda s: 1 if 5<=s else 0)
+    del dataset['family_size']
+
 
 train_df = train_df.drop(['FareBand'], axis=1)
 combine = [train_df, test_df]

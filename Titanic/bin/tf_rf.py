@@ -16,6 +16,9 @@ from sklearn.preprocessing import OneHotEncoder
 from tensorflow.python.platform import app
 from tensorflow.examples.tutorials.mnist import input_data
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 # mnist = input_data.read_data_sets('../data', one_hot=False)
 # t_x = mnist.train.images
 # t_y = mnist.train.labels
@@ -96,7 +99,7 @@ X = X_train.toarray().astype(np.float32)
 Y = Y_train.Survived.as_matrix().astype(np.float32)
 T = X_test.toarray().astype(np.float32)
 classifier.fit(x=X, y=Y, steps=20)
-classifier.evaluate(x=X, y=Y, steps=10)
+#classifier.evaluate(x=X, y=Y, steps=10)
 
 result_list = classifier.predict(x=T)
 result_df = pd.concat([id_test, pd.DataFrame(result_list)], axis=1)
