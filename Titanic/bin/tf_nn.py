@@ -53,12 +53,12 @@ label_num = Y_train.shape[1]
 
 # parameters
 learning_rate = 0.05
-training_epochs = 550
+training_epochs = 1000
 batch_size = 200
 display_step = 10
 kfold_split_num = 8
 gpu_num = 2
-regularizer_beta = 0.01
+regularizer_beta = 0.005
 layer_num = 1
 
 # Network Parameters
