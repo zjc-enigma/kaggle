@@ -66,5 +66,3 @@ result_df['PassengerId'] = id_test
 result_df['Survived'] = survive_score >= not_survive_score
 result_df['Survived'] = result_df.Survived.apply(int)
 result_df.to_csv('../data/nb_result_to_submission', index=False)
-
-
