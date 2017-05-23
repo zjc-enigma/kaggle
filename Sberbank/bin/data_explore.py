@@ -78,3 +78,4 @@ numeric_df = t_df.select_dtypes(exclude=[object])
 object_df.apply(lenc.fit_transform)
 
 # pd.concat([numeric_df, labeled_df], 1)
+# new house
